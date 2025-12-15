@@ -125,3 +125,31 @@ function loadAllDataFromFirebase() {
   };
   console.log('🔄 Auto-sync enabled');
 })();
+
+// Monitor database connection status
+function updateConnectionStatus() {
+  const statusElement = document.getElementById('db-status');
+  if (!statusElement) return;
+  
+  if (!db) {
+    statusElement.className = 'db-status offline';
+    statusElement.innerHTML = '<span class="status-dot"></span><span class="status-text">❌ ขาดการเชื่อมต่อ</span>';
+    return;
+  }
+
+  // Check connection using .info/connected
+  db.ref('.info/connected').on('value', (snapshot) => {
+    if (snapshot.val() === true) {
+      statusElement.className = 'db-status online';
+      statusElement.innerHTML = '<span class="status-dot"></span><span class="status-text">🟢 เชื่อมต่อสำเร็จ</span>';
+      console.log('✅ Firebase connected');
+    } else {
+      statusElement.className = 'db-status offline';
+      statusElement.innerHTML = '<span class="status-dot"></span><span class="status-text">🔴 ขาดการเชื่อมต่อ</span>';
+      console.log('❌ Firebase disconnected');
+    }
+  });
+}
+
+// Start monitoring after init
+setTimeout(updateConnectionStatus, 1000);

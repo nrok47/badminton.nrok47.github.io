@@ -115,6 +115,9 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     padding: 1rem 2rem;
     margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .nav-brand h1 {
@@ -156,6 +159,57 @@ body {
     background: #667eea;
     color: white;
     border-color: #667eea;
+}
+
+/* Database Connection Status */
+.db-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #f0f0f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ffa500;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.db-status.online .status-dot {
+    background: #4caf50;
+    animation: none;
+}
+
+.db-status.offline .status-dot {
+    background: #f44336;
+    animation: none;
+}
+
+.status-text {
+    color: #333;
+}
+
+.db-status.offline .status-text {
+    color: #f44336;
+}
+
+.db-status.online .status-text {
+    color: #4caf50;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
 }
 
 /* Container */
