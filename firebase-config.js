@@ -12,21 +12,42 @@ const firebaseConfig = {
 
 console.log('🔥 Firebase RTDB config loaded');
 
-try {
-  firebase.initializeApp(firebaseConfig);
-  console.log('✅ Firebase initialized');
-} catch (err) {
-  console.error('❌ Firebase init error:', err);
+let app;
+let db = null;
+
+// Initialize Firebase with retry logic
+function initFirebase() {
+  try {
+    // Try to get existing app first
+    try {
+      app = firebase.app();
+      console.log('ℹ️ Firebase app already exists, reusing');
+    } catch (_err) {
+      // App doesn't exist, create new one
+      app = firebase.initializeApp(firebaseConfig);
+      console.log('✅ Firebase initialized');
+    }
+    
+    // Get database reference
+    if (app && !db) {
+      db = firebase.database();
+      console.log('🗄️ Using Realtime Database URL:', firebaseConfig.databaseURL);
+    }
+  } catch (err) {
+    console.error('❌ Firebase init error:', err);
+    // Retry after a short delay
+    setTimeout(initFirebase, 500);
+  }
 }
 
-// Use explicit databaseURL to avoid host/region mismatches
-const db = firebase.database(firebaseConfig.databaseURL);
-console.log('🗄️ Using Realtime Database URL:', firebaseConfig.databaseURL);
+// Start initialization
+initFirebase();
 
 // Public path for app data (requires RTDB rules to allow read/write)
 const DATA_PATH = 'public/bcm-data';
 
 function saveDataToFirebase() {
+  if (!db) return console.error('🚫 Cannot save: RTDB not initialized');
   const data = {
     members,
     matches,
@@ -45,6 +66,10 @@ function saveDataToFirebase() {
 }
 
 function loadAllDataFromFirebase() {
+  if (!db) {
+    console.error('🚫 Cannot load: RTDB not initialized');
+    return;
+  }
   db.ref(DATA_PATH).once('value')
     .then((snapshot) => {
       if (snapshot.exists()) {
@@ -79,8 +104,9 @@ function loadAllDataFromFirebase() {
 
 // Quick connectivity verification to surface misconfiguration early
 (function verifyDatabaseConnection(){
+  if (!db) return;
   const ts = Date.now();
-  db.ref('public/.ping').set({ ts })
+  db.ref('public/_ping').set({ ts })
     .then(() => console.log('📶 RTDB write test OK:', ts))
     .catch((error) => {
       console.error('🚫 RTDB write failed:', error);
