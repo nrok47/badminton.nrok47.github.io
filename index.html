@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BC Manager - ระบบจัดการก๊วนแบดมินตัน</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Authentication removed: app always available -->
+
+    <!-- Main App Container -->
+    <div id="app-container">
+        <!-- Navigation -->
+        <nav class="navbar">
+        <div class="nav-brand">
+            <h1>🏸 BC Manager</h1>
+            <p class="tagline">ระบบบริหารจัดการก๊วนแบดมินตันครบวงจร</p>
+        </div>
+        <div class="nav-menu">
+            <button class="nav-btn active" data-page="dashboard">📊 Dashboard</button>
+            <button class="nav-btn" data-page="club">👥 ระบบก๊วน</button>
+            <button class="nav-btn" data-page="tournament">🏆 ทัวร์นาเมนต์</button>
+            <button class="nav-btn" data-page="finance">💰 ระบบการเงิน</button>
+            <!-- Login removed -->
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Dashboard Page -->
+        <div id="dashboard-page" class="page active">
+            <div class="page-header">
+                <h2>📊 Dashboard</h2>
+                <p>ภาพรวมและสถิติการแข่งขัน</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <h3 id="total-members">0</h3>
+                        <p>สมาชิก</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-info">
+                        <h3 id="total-matches">0</h3>
+                        <p>แมตช์ทั้งหมด</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-info">
+                        <h3 id="total-courts">0</h3>
+                        <p>คอร์ทวันนี้</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💵</div>
+                    <div class="stat-info">
+                        <h3 id="total-expenses">฿0</h3>
+                        <p>ค่าใช้จ่าย</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="card">
+                <h3>🏆 อันดับคะแนนสมาชิก</h3>
+                <div class="leaderboard" id="leaderboard">
+                    <p class="empty-state">ยังไม่มีข้อมูลคะแนน เริ่มต้นโดยเพิ่มสมาชิกและบันทึกผลการแข่งขัน</p>
+                </div>
+            </div>
+
+            <!-- Recent Matches -->
+            <div class="card">
+                <h3>📋 แมตช์ล่าสุด</h3>
+                <div id="recent-matches">
+                    <p class="empty-state">ยังไม่มีการแข่งขัน</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Club Management Page -->
+        <div id="club-page" class="page">
+            <div class="page-header">
+                <h2>👥 ระบบจัดการก๊วน</h2>
+                <p>จัดการสมาชิกและจัดคอร์ทแข่งขัน</p>
+            </div>
+
+            <!-- Members Section -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>สมาชิกทั้งหมด</h3>
+                    <button class="btn btn-primary" id="add-member-btn">➕ เพิ่มสมาชิก</button>
+                </div>
+                <div class="members-grid" id="members-list">
+                    <p class="empty-state">ยังไม่มีสมาชิก คลิก "เพิ่มสมาชิก" เพื่อเริ่มต้น</p>
+                </div>
+            </div>
+
+            <!-- Court Management -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>🎯 จัดคอร์ทแข่งขัน</h3>
+                    <button class="btn btn-success" id="arrange-courts-btn">🎲 สุ่มจัดคอร์ทอัตโนมัติ</button>
+                </div>
+                <div id="courts-container">
+                    <p class="empty-state">คลิก "สุ่มจัดคอร์ทอัตโนมัติ" เพื่อเริ่มแข่งขัน</p>
+                </div>
+            </div>
+
+            <!-- Match Result Entry -->
+            <div class="card">
+                <h3>📝 บันทึกผลการแข่งขัน</h3>
+                <form id="match-result-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>ผู้เล่นคนที่ 1 (ฝั่งชนะ)</label>
+                            <select id="winner1" required>
+                                <option value="">เลือกผู้เล่น</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>ผู้เล่นคนที่ 2 (ฝั่งชนะ)</label>
+                            <select id="winner2" required>
+                                <option value="">เลือกผู้เล่น</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>ผู้เล่นคนที่ 1 (ฝั่งแพ้)</label>
+                            <select id="loser1" required>
+                                <option value="">เลือกผู้เล่น</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>ผู้เล่นคนที่ 2 (ฝั่งแพ้)</label>
+                            <select id="loser2" required>
+                                <option value="">เลือกผู้เล่น</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">✅ บันทึกผลการแข่งขัน</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tournament Page -->
+        <div id="tournament-page" class="page">
+            <div class="page-header">
+                <h2>🏆 ระบบจัดทัวร์นาเมนต์</h2>
+                <p>จัดการแข่งขันระบบทัวร์นาเมนต์</p>
+            </div>
+
+            <!-- Tournament Setup -->
+            <div class="card">
+                <h3>🎯 สร้างทัวร์นาเมนต์ใหม่</h3>
+                <form id="tournament-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>ชืุ่อทัวร์นาเมนต์</label>
+                            <input type="text" id="tournament-name" placeholder="เช่น ทัวร์นาเมนต์เดือนธันวาคม" required>
+                        </div>
+                        <div class="form-group">
+                            <label>รูปแบบการแข่ง</label>
+                            <select id="tournament-format" required>
+                                <option value="roundrobin">🔄 Round Robin (แข่งกับทุกคู่)</option>
+                                <option value="elimination">🏆 Single Elimination (แบบเอาต์)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>เลือกผู้เล่น (เลือกหลายคน ถ้าเล่นแบบคู่ ต้องเลือกคู่ละ 2 คน)</label>
+                        <div id="tournament-players-selection" class="tournament-players-grid">
+                            <p class="empty-state">กรุณาเพิ่มสมาชิกก่อน</p>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-block">⚔️ สร้างทัวร์นาเมนต์</button>
+                </form>
+            </div>
+
+            <!-- Active Tournament -->
+            <div id="active-tournament" class="card" style="display: none;">
+                <div class="card-header">
+                    <h3 id="active-tournament-name">🏆 ทัวร์นาเมนต์</h3>
+                    <button class="btn btn-danger" id="end-tournament-btn">❌ สิ้นสุดทัวร์นาเมนต์</button>
+                </div>
+                <div id="tournament-bracket"></div>
+            </div>
+
+            <!-- Tournament History -->
+            <div class="card">
+                <h3>📜 ประวัติทัวร์นาเมนต์</h3>
+                <div id="tournament-history">
+                    <p class="empty-state">ยังไม่มีทัวร์นาเมนต์ที่จบแล้ว</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Finance Page -->
+        <div id="finance-page" class="page">
+            <div class="page-header">
+                <h2>💰 ระบบจัดการการเงิน</h2>
+                <p>บิลสรุปค่าใช้จ่ายและระบบ Bill Split</p>
+            </div>
+
+            <!-- Add Expense -->
+            <div class="card">
+                <h3>➕ เพิ่มค่าใช้จ่าย</h3>
+                <form id="expense-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>รายการ</label>
+                            <input type="text" id="expense-name" placeholder="เช่น ค่าคอร์ท, ค่าลูก" required>
+                        </div>
+                        <div class="form-group">
+                            <label>จำนวนเงิน (บาท)</label>
+                            <input type="number" id="expense-amount" placeholder="0" min="0" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>ผู้จ่าย</label>
+                        <select id="expense-payer" required>
+                            <option value="">เลือกผู้จ่าย</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">💾 บันทึก</button>
+                </form>
+            </div>
+
+            <!-- Bill Split -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📊 สรุปค่าใช้จ่าย & Bill Split</h3>
+                    <button class="btn btn-warning" id="clear-expenses-btn">🗑️ ล้างข้อมูล</button>
+                </div>
+                <div id="expenses-summary">
+                    <p class="empty-state">ยังไม่มีรายการค่าใช้จ่าย</p>
+                </div>
+            </div>
+
+            <!-- Expenses List -->
+            <div class="card">
+                <h3>📋 รายการค่าใช้จ่ายทั้งหมด</h3>
+                <div id="expenses-list">
+                    <p class="empty-state">ไม่มีรายการ</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal for Adding Member -->
+    <div id="member-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>➕ เพิ่มสมาชิกใหม่</h3>
+                <button class="close-btn" onclick="closeModal('member-modal')">&times;</button>
+            </div>
+            <form id="member-form">
+                <div class="form-group">
+                    <label>ชื่อ-นามสกุล</label>
+                    <input type="text" id="member-name" placeholder="กรอกชื่อสมาชิก" required>
+                </div>
+                <div class="form-group">
+                    <label>เบอร์โทร (ไม่บังคับ)</label>
+                    <input type="tel" id="member-phone" placeholder="08X-XXX-XXXX">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">✅ เพิ่มสมาชิก</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDK v9+ (Compatible) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <!-- Firebase RTDB Config (no auth) -->
+    <script src="firebase-config.js"></script>
+
+    <!-- Main App -->
+    <script src="app.js"></script>
+</body>
+</html>
