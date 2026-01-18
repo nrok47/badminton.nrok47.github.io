@@ -214,57 +214,53 @@
                 <p>บิลสรุปค่าใช้จ่ายและระบบ Bill Split</p>
             </div>
 
-            <!-- Add Expense -->
+            <!-- Add Bill -->
             <div class="card">
-                <h3>➕ เพิ่มค่าใช้จ่าย</h3>
-                <form id="expense-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>ประเภทค่าใช้จ่าย</label>
-                            <select id="expense-type" required onchange="updateExpenseForm()">
-                                <option value="">เลือกประเภท</option>
-                                <option value="court">🏸 ค่าสนาม (หารเท่ากันทุกคน)</option>
-                                <option value="shuttlecock">🏸 ค่าลูก (เลือกใครหัก)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>จำนวนเงิน (บาท)</label>
-                            <input type="number" id="expense-amount" placeholder="0" min="0" required>
-                        </div>
-                    </div>
+                <h3>📝 สร้างบิลใหม่</h3>
+                <form id="bill-form" onsubmit="event.preventDefault(); createBill();">
                     
-                    <!-- For Court Type -->
-                    <div class="form-group" id="court-payer-group" style="display: none;">
-                        <label>ผู้จ่ายค่าสนาม</label>
-                        <select id="expense-payer" required>
-                            <option value="">เลือกผู้จ่าย</option>
-                        </select>
+                    <!-- Step 1: Select Members -->
+                    <div class="form-group">
+                        <label><strong>ขั้นที่ 1: เลือกผู้เล่นในบิลนี้</strong></label>
+                        <div id="bill-members-list" class="members-checkbox-list">
+                            <p class="empty-state">กรุณาเพิ่มสมาชิกก่อน</p>
+                        </div>
                     </div>
 
-                    <!-- For Shuttlecock Type -->
-                    <div id="shuttlecock-group" style="display: none;">
-                        <div class="form-group">
-                            <label>ผู้จ่ายค่าลูก</label>
-                            <select id="shuttlecock-payer" required>
-                                <option value="">เลือกผู้จ่าย</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>เลือกคนที่ต้องหักค่านี้ (เลือกได้หลายคน)</label>
-                            <div id="shuttlecock-members-list" class="members-checkbox-list">
-                                <p class="empty-state">กรุณาเพิ่มสมาชิกก่อน</p>
+                    <!-- Step 2: Court Fee -->
+                    <div class="form-group">
+                        <label><strong>ขั้นที่ 2: ค่าสนาม (หารเท่าๆกันทุกคนในบิล)</strong></label>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>จำนวนเงิน</label>
+                                <input type="number" id="bill-court-fee" placeholder="เช่น 400" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>ผู้จ่าย</label>
+                                <select id="bill-court-payer">
+                                    <option value="">เลือกผู้จ่าย</option>
+                                </select>
                             </div>
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">💾 บันทึก</button>
+                    <!-- Step 3: Shuttlecock Fees -->
+                    <div class="form-group">
+                        <label><strong>ขั้นที่ 3: ค่าลูก (เพิ่มได้หลายรายการ)</strong></label>
+                        <div id="shuttlecock-items-container">
+                            <!-- Items will be added here -->
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="addShuttlecockItem()">➕ เพิ่มค่าลูก</button>
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-block">✅ สร้างบิลและคำนวน</button>
                 </form>
             </div>
 
-            <!-- Bill Split -->
+            <!-- Bill Split Result -->
             <div class="card">
                 <div class="card-header">
-                    <h3>📊 สรุปค่าใช้จ่าย & Bill Split</h3>
+                    <h3>📊 ผลสรุปบิล & Bill Split</h3>
                     <button class="btn btn-warning" id="clear-expenses-btn">🗑️ ล้างข้อมูล</button>
                 </div>
                 <div id="expenses-summary">

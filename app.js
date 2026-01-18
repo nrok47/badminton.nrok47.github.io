@@ -6,6 +6,8 @@ let courts = [];
 let activeTournament = null;
 let tournamentHistory = [];
 let selectedPlayers = [];
+let billMembers = []; // Selected members in current bill
+let shuttlecockItems = []; // Array of {quantity, pricePerItem, payer}
 
 // Initialize App (Firebase RTDB, no auth)
 document.addEventListener('DOMContentLoaded', () => {
@@ -81,6 +83,7 @@ function initializeAppUI() {
     // Initial Render
     updateDashboard();
     renderMembers();
+    renderBillMembersList();
     renderExpenses();
     renderTournamentPlayerSelection();
     renderActiveTournament();
@@ -168,6 +171,9 @@ function renderMembers() {
             </div>
         </div>
     `).join('');
+    
+    // Update bill members list
+    renderBillMembersList();
 }
 
 // Court Arrangement
@@ -589,6 +595,171 @@ function renderShuttlecockMembersList() {
     `).join('');
 }
 
+// ========== NEW BILL SYSTEM ==========
+
+// Render Bill Members Selection
+function renderBillMembersList() {
+    const container = document.getElementById('bill-members-list');
+    
+    if (!members || members.length === 0) {
+        container.innerHTML = '<p class="empty-state">ยังไม่มีสมาชิก</p>';
+        return;
+    }
+
+    container.innerHTML = members.map(member => `
+        <div class="member-checkbox-item">
+            <input type="checkbox" id="bill-member-${member.id}" value="${member.id}" class="bill-member">
+            <label for="bill-member-${member.id}">${member.name}</label>
+        </div>
+    `).join('');
+}
+
+// Get Selected Members in Bill
+function getSelectedBillMembers() {
+    const checkboxes = document.querySelectorAll('.bill-member:checked');
+    return Array.from(checkboxes).map(cb => parseInt(cb.value));
+}
+
+// Add Shuttlecock Item Row
+function addShuttlecockItem() {
+    const container = document.getElementById('shuttlecock-items-container');
+    const itemId = Date.now();
+    
+    const html = `
+        <div class="shuttlecock-item" id="item-${itemId}" style="background: #f0f4f8; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>จำนวนลูก</label>
+                    <input type="number" class="sc-quantity" placeholder="เช่น 1, 2, 3" min="1" value="1">
+                </div>
+                <div class="form-group">
+                    <label>ราคาลูกละ (บาท)</label>
+                    <input type="number" class="sc-price" placeholder="เช่น 45, 50" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>ผู้จ่าย</label>
+                    <select class="sc-payer">
+                        <option value="">เลือกผู้จ่าย</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-danger" onclick="removeShuttlecockItem(${itemId})" style="align-self: flex-end;">🗑️</button>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', html);
+    updatePayerSelects();
+}
+
+// Remove Shuttlecock Item
+function removeShuttlecockItem(itemId) {
+    const element = document.getElementById(`item-${itemId}`);
+    if (element) element.remove();
+}
+
+// Update Payer Selects in Shuttlecock Items
+function updatePayerSelects() {
+    if (!members) members = [];
+    
+    document.querySelectorAll('.sc-payer').forEach(select => {
+        const currentValue = select.value;
+        select.innerHTML = `<option value="">เลือกผู้จ่าย</option>` +
+            members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+        if (currentValue) select.value = currentValue;
+    });
+}
+
+// Create and Calculate Bill
+function createBill() {
+    if (!members || members.length === 0) {
+        alert('กรุณาเพิ่มสมาชิกก่อน');
+        return;
+    }
+
+    // Get selected bill members
+    const selectedMemberIds = getSelectedBillMembers();
+    if (selectedMemberIds.length === 0) {
+        alert('กรุณาเลือกผู้เล่นในบิลอย่างน้อย 1 คน');
+        return;
+    }
+
+    // Get court fee
+    const courtFee = parseFloat(document.getElementById('bill-court-fee').value) || 0;
+    const courtPayer = document.getElementById('bill-court-payer').value;
+    
+    if (courtFee > 0 && !courtPayer) {
+        alert('กรุณาเลือกผู้จ่ายค่าสนาม');
+        return;
+    }
+
+    // Get shuttlecock items
+    const scItems = [];
+    document.querySelectorAll('.shuttlecock-item').forEach(item => {
+        const quantity = parseInt(item.querySelector('.sc-quantity').value) || 0;
+        const pricePerItem = parseFloat(item.querySelector('.sc-price').value) || 0;
+        const payer = item.querySelector('.sc-payer').value;
+        
+        if (quantity > 0 && pricePerItem > 0 && payer) {
+            scItems.push({
+                quantity: quantity,
+                pricePerItem: pricePerItem,
+                totalPrice: quantity * pricePerItem,
+                payerId: parseInt(payer)
+            });
+        }
+    });
+
+    // Calculate bill
+    calculateAndSaveBill(selectedMemberIds, courtFee, courtPayer, scItems);
+}
+
+// Calculate and Save Bill
+function calculateAndSaveBill(selectedMemberIds, courtFee, courtPayerId, scItems) {
+    if (!members) members = [];
+    
+    const billData = {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        memberIds: selectedMemberIds,
+        courtFee: courtFee,
+        courtPayerId: courtPayerId ? parseInt(courtPayerId) : null,
+        shuttlecockItems: scItems,
+        totalAmount: 0,
+        splitPerPerson: 0
+    };
+
+    // Calculate total
+    let totalAmount = courtFee;
+    scItems.forEach(item => {
+        totalAmount += item.totalPrice;
+    });
+
+    billData.totalAmount = totalAmount;
+    billData.splitPerPerson = totalAmount / selectedMemberIds.length;
+
+    // Store in expenses array for history
+    expenses.push(billData);
+
+    // Save to Firebase
+    saveDataToFirebase();
+    
+    // Refresh display
+    renderExpenses();
+    updateDashboard();
+    
+    // Reset form
+    document.getElementById('bill-form').reset();
+    billMembers = [];
+    document.querySelectorAll('.bill-member').forEach(cb => cb.checked = false);
+    document.getElementById('shuttlecock-items-container').innerHTML = '';
+    
+    // Show success
+    alert(`✅ สร้างบิลสำเร็จ!
+รวมทั้งหมด: ฿${totalAmount.toFixed(2)}
+คนละ: ฿${billData.splitPerPerson.toFixed(2)}`);
+}
+
+// ========== OLD SYSTEM (KEEP FOR BACKUP) ==========
 // Get Selected Members for Shuttlecock
 function getSelectedShuttlecockMembers() {
     const checkboxes = document.querySelectorAll('.shuttlecock-member:checked');
@@ -688,28 +859,60 @@ function renderExpenses() {
         listContainer.innerHTML = '<p class="empty-state">ไม่มีรายการ</p>';
     } else {
         listContainer.innerHTML = expenses.map(exp => {
-            // Safely handle both old and new expense formats
-            const splitCount = (exp.splitAmong && exp.splitAmong.length > 0) ? exp.splitAmong.length : (members && members.length > 0 ? members.length : 1);
-            const perPersonAmount = (exp.amount / splitCount).toFixed(2);
+            // Handle both old and new expense formats
+            let displayText = '';
+            let detailText = '';
             
-            let splitMembers = 'ทุกคน';
-            if (exp.splitAmong && exp.splitAmong.length > 0 && members && members.length > 0) {
-                splitMembers = exp.splitAmong.map(id => {
-                    const member = members.find(m => m.id === id);
-                    return member ? member.name : 'Unknown';
+            // Check if it's a new bill format (has memberIds and shuttlecockItems)
+            if (exp.memberIds) {
+                // New bill format
+                const memberNames = exp.memberIds.map(id => {
+                    const m = members.find(x => x.id === id);
+                    return m ? m.name : 'Unknown';
                 }).join(', ');
+                
+                displayText = `📋 บิลรวม - ฿${exp.totalAmount.toLocaleString()}`;
+                
+                let scDetails = '';
+                if (exp.shuttlecockItems && exp.shuttlecockItems.length > 0) {
+                    scDetails = '<div style="margin-top: 0.3rem;">';
+                    exp.shuttlecockItems.forEach(item => {
+                        const payer = members.find(m => m.id === item.payerId);
+                        scDetails += `<div style="font-size: 0.8rem;">🏸 ${item.quantity} ลูกละ ฿${item.pricePerItem} (${payer?.name}) = ฿${item.totalPrice}</div>`;
+                    });
+                    scDetails += '</div>';
+                }
+                
+                detailText = `<div style="font-size: 0.85rem; color: #666;">
+                    ค่าสนาม: ฿${exp.courtFee} | รวมทั้งหมด: ฿${exp.totalAmount.toFixed(2)} | คนละ: ฿${exp.splitPerPerson.toFixed(2)}
+                    <div style="margin-top: 0.3rem;">ผู้เล่น: ${memberNames}</div>
+                    ${scDetails}
+                </div>`;
+            } else {
+                // Old format
+                const splitCount = (exp.splitAmong && exp.splitAmong.length > 0) ? exp.splitAmong.length : (members && members.length > 0 ? members.length : 1);
+                const perPersonAmount = (exp.amount / splitCount).toFixed(2);
+                
+                let splitMembers = 'ทุกคน';
+                if (exp.splitAmong && exp.splitAmong.length > 0 && members && members.length > 0) {
+                    splitMembers = exp.splitAmong.map(id => {
+                        const member = members.find(m => m.id === id);
+                        return member ? member.name : 'Unknown';
+                    }).join(', ');
+                }
+                
+                displayText = `${exp.name} - ฿${exp.amount.toLocaleString()}`;
+                detailText = `<div style="font-size: 0.85rem; color: #666;">
+                    จ่ายโดย: ${exp.payer} | หารเท่ากับ ${splitCount} คน (คนละ ฿${perPersonAmount})
+                    <div style="font-size: 0.8rem; color: #999;">รายคน: ${splitMembers}</div>
+                </div>`;
             }
 
             return `
                 <div class="expense-item">
                     <div>
-                        <strong>${exp.name}</strong> - ฿${exp.amount.toLocaleString()}
-                        <div style="font-size: 0.85rem; color: #666;">
-                            จ่ายโดย: ${exp.payer} | หารเท่ากับ ${splitCount} คน (คนละ ฿${perPersonAmount})
-                        </div>
-                        <div style="font-size: 0.8rem; color: #999;">
-                            รายคน: ${splitMembers}
-                        </div>
+                        <strong>${displayText}</strong>
+                        ${detailText}
                     </div>
                     <button class="expense-delete" onclick="deleteExpense(${exp.id})">🗑️</button>
                 </div>
@@ -747,21 +950,51 @@ function calculateAndDisplayBillSplit(container) {
 
     // Calculate who paid and who owes
     expenses.forEach(exp => {
-        if (!exp || exp.amount === undefined) return;
+        if (!exp) return;
         
-        // Add to what payer paid
-        payments[exp.payerId] = (payments[exp.payerId] || 0) + exp.amount;
+        // Handle new bill format
+        if (exp.memberIds) {
+            // Court fee
+            if (exp.courtFee > 0 && exp.courtPayerId) {
+                payments[exp.courtPayerId] = (payments[exp.courtPayerId] || 0) + exp.courtFee;
+            }
+            
+            // Split court fee among selected members
+            const perPersonCourt = exp.courtFee / exp.memberIds.length;
+            exp.memberIds.forEach(memberId => {
+                owes[memberId] = (owes[memberId] || 0) + perPersonCourt;
+            });
+            
+            // Shuttlecock items
+            exp.shuttlecockItems.forEach(item => {
+                // Add to payer
+                payments[item.payerId] = (payments[item.payerId] || 0) + item.totalPrice;
+                
+                // Split among all members in bill (since all ate the shuttlecock)
+                const perPersonSC = item.totalPrice / exp.memberIds.length;
+                exp.memberIds.forEach(memberId => {
+                    owes[memberId] = (owes[memberId] || 0) + perPersonSC;
+                });
+            });
+        } else {
+            // Old format
+            if (!exp.amount === undefined) return;
+            
+            // Add to what payer paid
+            if (exp.payerId) {
+                payments[exp.payerId] = (payments[exp.payerId] || 0) + exp.amount;
+            }
 
-        // Distribute cost to those who owe
-        // Handle both new format (splitAmong) and old format (all members)
-        const splitMemberIds = (exp.splitAmong && exp.splitAmong.length > 0) ? exp.splitAmong : members.map(m => m.id);
-        const perPerson = exp.amount / splitMemberIds.length;
-        splitMemberIds.forEach(memberId => {
-            owes[memberId] = (owes[memberId] || 0) + perPerson;
-        });
+            // Distribute cost to those who owe
+            const splitMemberIds = (exp.splitAmong && exp.splitAmong.length > 0) ? exp.splitAmong : members.map(m => m.id);
+            const perPerson = exp.amount / splitMemberIds.length;
+            splitMemberIds.forEach(memberId => {
+                owes[memberId] = (owes[memberId] || 0) + perPerson;
+            });
+        }
     });
 
-    // Calculate balance (positive = owed money back, negative = owes money)
+    // Calculate balance
     const balances = members.map(m => ({
         name: m.name,
         id: m.id,
@@ -770,7 +1003,13 @@ function calculateAndDisplayBillSplit(container) {
         balance: (payments[m.id] || 0) - (owes[m.id] || 0)
     }));
 
-    const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const totalExpense = expenses.reduce((sum, exp) => {
+        if (exp.memberIds) {
+            return sum + exp.totalAmount;
+        } else {
+            return sum + (exp.amount || 0);
+        }
+    }, 0);
 
     container.innerHTML = `
         <div class="summary-item summary-total">
