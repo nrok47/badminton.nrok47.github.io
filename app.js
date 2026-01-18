@@ -248,14 +248,14 @@ function renderCourts() {
 function updatePlayerSelects() {
     if (!members) members = [];
     
-    const selects = ['winner1', 'winner2', 'loser1', 'loser2', 'expense-payer', 'edit-winner1', 'edit-winner2', 'edit-loser1', 'edit-loser2', 'shuttlecock-payer'];
+    const selects = ['winner1', 'winner2', 'loser1', 'loser2', 'expense-payer', 'edit-winner1', 'edit-winner2', 'edit-loser1', 'edit-loser2', 'shuttlecock-payer', 'bill-court-payer'];
     
     selects.forEach(selectId => {
         const select = document.getElementById(selectId);
         if (!select) return;
 
         const currentValue = select.value;
-        const isExpense = selectId === 'expense-payer' || selectId === 'shuttlecock-payer';
+        const isExpense = selectId === 'expense-payer' || selectId === 'shuttlecock-payer' || selectId === 'bill-court-payer';
         
         select.innerHTML = `<option value="">เลือก${isExpense ? 'ผู้จ่าย' : 'ผู้เล่น'}</option>` +
             members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
