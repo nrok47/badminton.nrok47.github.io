@@ -874,6 +874,9 @@ function renderExpenses() {
     // Expenses List
     const listContainer = document.getElementById('expenses-list');
     
+    // Check if container exists (might not be on this page)
+    if (!listContainer) return;
+    
     if (!expenses || expenses.length === 0) {
         listContainer.innerHTML = '<p class="empty-state">ไม่มีรายการ</p>';
     } else {
@@ -941,6 +944,9 @@ function renderExpenses() {
 
     // Bill Split Calculation
     const summaryContainer = document.getElementById('expenses-summary');
+    
+    // Check if container exists (might not be on this page)
+    if (!summaryContainer) return;
     
     if (!expenses || expenses.length === 0) {
         summaryContainer.innerHTML = '<p class="empty-state">ยังไม่มีรายการค่าใช้จ่าย</p>';
