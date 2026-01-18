@@ -98,6 +98,24 @@ function loadAllDataFromFirebase() {
     })
     .catch((error) => {
       console.error('❌ Error loading from Firebase:', error.message);
+      // Initialize empty data
+      members = [];
+      matches = [];
+      expenses = [];
+      courts = [];
+      activeTournament = null;
+      tournamentHistory = [];
+      // Try to render with empty data
+      try {
+        updateDashboard();
+        renderMembers();
+        renderExpenses();
+        renderTournamentPlayerSelection();
+        renderActiveTournament();
+        renderTournamentHistory();
+      } catch (renderError) {
+        console.error('❌ Error rendering with empty data:', renderError.message);
+      }
       alert('⚠️ ไม่สามารถโหลดข้อมูลได้: ' + error.message);
     });
 }

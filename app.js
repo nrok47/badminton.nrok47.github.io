@@ -29,36 +29,43 @@ function initializeAppUI() {
     });
 
     // Add Member Button
-    document.getElementById('add-member-btn').addEventListener('click', () => {
+    const addMemberBtn = document.getElementById('add-member-btn');
+    if (addMemberBtn) addMemberBtn.addEventListener('click', () => {
         openModal('member-modal');
     });
 
     // Member Form Submit
-    document.getElementById('member-form').addEventListener('submit', (e) => {
+    const memberForm = document.getElementById('member-form');
+    if (memberForm) memberForm.addEventListener('submit', (e) => {
         e.preventDefault();
         addMember();
     });
 
     // Arrange Courts Button
-    document.getElementById('arrange-courts-btn').addEventListener('click', arrangeCourts);
+    const arrangeBtn = document.getElementById('arrange-courts-btn');
+    if (arrangeBtn) arrangeBtn.addEventListener('click', arrangeCourts);
 
     // Match Result Form
-    document.getElementById('match-result-form').addEventListener('submit', (e) => {
+    const matchForm = document.getElementById('match-result-form');
+    if (matchForm) matchForm.addEventListener('submit', (e) => {
         e.preventDefault();
         recordMatchResult();
     });
 
     // Expense Form
-    document.getElementById('expense-form').addEventListener('submit', (e) => {
+    const expenseForm = document.getElementById('expense-form');
+    if (expenseForm) expenseForm.addEventListener('submit', (e) => {
         e.preventDefault();
         addExpense();
     });
 
     // Expense Type Change Handler
-    document.getElementById('expense-type').addEventListener('change', updateExpenseForm);
+    const expenseType = document.getElementById('expense-type');
+    if (expenseType) expenseType.addEventListener('change', updateExpenseForm);
 
     // Clear Expenses Button
-    document.getElementById('clear-expenses-btn').addEventListener('click', () => {
+    const clearExpensesBtn = document.getElementById('clear-expenses-btn');
+    if (clearExpensesBtn) clearExpensesBtn.addEventListener('click', () => {
         if (confirm('คุณต้องการล้างข้อมูลค่าใช้จ่ายทั้งหมดหรือไม่?')) {
             expenses = [];
             saveDataToFirebase();
@@ -68,13 +75,15 @@ function initializeAppUI() {
     });
 
     // Tournament Form Submit
-    document.getElementById('tournament-form').addEventListener('submit', (e) => {
+    const tournamentForm = document.getElementById('tournament-form');
+    if (tournamentForm) tournamentForm.addEventListener('submit', (e) => {
         e.preventDefault();
         createTournament();
     });
 
     // End Tournament Button
-    document.getElementById('end-tournament-btn').addEventListener('click', () => {
+    const endTournamentBtn = document.getElementById('end-tournament-btn');
+    if (endTournamentBtn) endTournamentBtn.addEventListener('click', () => {
         if (confirm('คุณต้องการสิ้นสุดทัวร์นาเมนต์นี้หรือไม่?')) {
             endTournament();
         }
