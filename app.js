@@ -608,6 +608,7 @@ function updateExpenseForm() {
 // Render Members Checkbox List for Shuttlecock
 function renderShuttlecockMembersList() {
     const container = document.getElementById('shuttlecock-members-list');
+    if (!container) return;  // Safe check
     
     if (!members || members.length === 0) {
         container.innerHTML = '<p class="empty-state">ยังไม่มีสมาชิก</p>';
