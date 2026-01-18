@@ -909,17 +909,26 @@ function deleteExpense(id) {
     }
 }
 
-// Clear member's debt for current bill (set their expenses to 0)
+// Clear member's debt for current bill (remove member from expenses only)
 function clearMemberExpense(memberId) {
     if (!confirm(`คุณต้องการยืนยันว่าสมาชิกนี้จ่ายแล้วหรือไม่?`)) return;
     
-    // Set all expenses for this member to 0 (or remove them)
-    expenses = expenses.filter(e => {
+    // Remove this member from all expenses
+    expenses = expenses.map(e => {
         if (e.memberIds && e.memberIds.includes(memberId)) {
-            return false; // Remove this expense for this member
+            // Remove member from this expense
+            e.memberIds = e.memberIds.filter(id => id !== memberId);
+            // Recalculate values if memberIds is empty, remove expense entirely
+            if (e.memberIds.length === 0) {
+                return null; // Mark for removal
+            }
+            // Recalculate per-person amounts for remaining members
+            if (e.memberIds.length > 0) {
+                e.splitPerPerson = e.totalAmount / e.memberIds.length;
+            }
         }
-        return true;
-    });
+        return e;
+    }).filter(e => e !== null); // Remove null entries
     
     saveDataToFirebase();
     renderExpenses();
