@@ -354,6 +354,12 @@ body {
     background: #38a169;
 }
 
+.btn-small {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    width: 100%;
+}
+
 .btn-warning {
     background: #ed8936;
     color: white;

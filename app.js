@@ -909,6 +909,23 @@ function deleteExpense(id) {
     }
 }
 
+// Clear member's debt for current bill (set their expenses to 0)
+function clearMemberExpense(memberId) {
+    if (!confirm(`คุณต้องการยืนยันว่าสมาชิกนี้จ่ายแล้วหรือไม่?`)) return;
+    
+    // Set all expenses for this member to 0 (or remove them)
+    expenses = expenses.filter(e => {
+        if (e.memberIds && e.memberIds.includes(memberId)) {
+            return false; // Remove this expense for this member
+        }
+        return true;
+    });
+    
+    saveDataToFirebase();
+    renderExpenses();
+    updateDashboard();
+}
+
 function renderExpenses() {
     // Expenses List
     const listContainer = document.getElementById('expenses-list');
@@ -1102,15 +1119,13 @@ function calculateAndDisplayBillSplit(container) {
                             <div style="margin-bottom: 0.5rem;">
                                 <strong>${b.name}</strong>
                             </div>
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.3rem;">
-                                จ่ายไป: ฿${b.paid.toFixed(2)}
-                            </div>
                             <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">
                                 ต้องจ่าย: ฿${b.owes.toFixed(2)}
                             </div>
-                            <div style="font-weight: bold; padding-top: 0.5rem; border-top: 1px solid #e0e0e0;">
+                            <div style="font-weight: bold; padding-top: 0.5rem; border-top: 1px solid #e0e0e0; margin-bottom: 0.5rem;">
                                 ${statusText}
                             </div>
+                            <button class="btn btn-success btn-small" onclick="clearMemberExpense(${b.id})">✅ จ่ายแล้ว</button>
                         </div>
                     `;
                 }).join('')}
