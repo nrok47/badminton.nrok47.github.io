@@ -155,6 +155,7 @@ function deleteMember(id) {
 
 function renderMembers() {
     const container = document.getElementById('members-list');
+    if (!container) return;  // Safe check
     
     if (!members || members.length === 0) {
         container.innerHTML = '<p class="empty-state">ยังไม่มีสมาชิก คลิก "เพิ่มสมาชิก" เพื่อเริ่มต้น</p>';
@@ -202,6 +203,7 @@ function arrangeCourts() {
 
 function renderCourts() {
     const container = document.getElementById('courts-container');
+    if (!container) return;  // Safe check
 
     if (courts.length === 0) {
         container.innerHTML = '<p class="empty-state">คลิก "สุ่มจัดคอร์ทอัตโนมัติ" เพื่อเริ่มแข่งขัน</p>';
@@ -635,6 +637,7 @@ function getSelectedBillMembers() {
 // Add Shuttlecock Item Row
 function addShuttlecockItem() {
     const container = document.getElementById('shuttlecock-items-container');
+    if (!container) return;  // Safe check
     const itemId = Date.now();
     
     const html = `
@@ -1088,14 +1091,19 @@ function updateDashboard() {
     if (!expenses) expenses = [];
     
     // Stats
-    document.getElementById('total-members').textContent = members.length;
-    document.getElementById('total-matches').textContent = matches.length;
-    document.getElementById('total-courts').textContent = courts.length;
-    document.getElementById('total-expenses').textContent = 
-        '฿' + expenses.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString();
+    const totalMembers = document.getElementById('total-members');
+    const totalMatches = document.getElementById('total-matches');
+    const totalCourts = document.getElementById('total-courts');
+    const totalExpenses = document.getElementById('total-expenses');
+    
+    if (totalMembers) totalMembers.textContent = members.length;
+    if (totalMatches) totalMatches.textContent = matches.length;
+    if (totalCourts) totalCourts.textContent = courts.length;
+    if (totalExpenses) totalExpenses.textContent = '฿' + expenses.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString();
 
     // Leaderboard
     const leaderboard = document.getElementById('leaderboard');
+    if (!leaderboard) return;  // Safe check
     const sortedMembers = [...members].sort((a, b) => b.points - a.points);
 
     if (sortedMembers.length === 0) {
@@ -1136,6 +1144,7 @@ function updateDashboard() {
 
     // Recent Matches
     const recentMatches = document.getElementById('recent-matches');
+    if (!recentMatches) return;  // Safe check
     const lastMatches = matches.slice(-5).reverse();
 
     if (lastMatches.length === 0) {
@@ -1169,6 +1178,7 @@ function updateDashboard() {
 // Tournament Management
 function renderTournamentPlayerSelection() {
     const container = document.getElementById('tournament-players-selection');
+    if (!container) return;  // Safe check
     
     if (!members || members.length === 0) {
         container.innerHTML = '<p class="empty-state">กรุณาเพิ่มสมาชิกก่อน</p>';
@@ -1293,6 +1303,7 @@ function generateEliminationBracket(pairs) {
 
 function renderActiveTournament() {
     const container = document.getElementById('active-tournament');
+    if (!container) return;  // Safe check
     
     if (!activeTournament) {
         container.style.display = 'none';
@@ -1300,9 +1311,11 @@ function renderActiveTournament() {
     }
 
     container.style.display = 'block';
-    document.getElementById('active-tournament-name').textContent = `🏆 ${activeTournament.name}`;
+    const titleElement = document.getElementById('active-tournament-name');
+    if (titleElement) titleElement.textContent = `🏆 ${activeTournament.name}`;
 
     const bracketContainer = document.getElementById('tournament-bracket');
+    if (!bracketContainer) return;  // Safe check
 
     if (activeTournament.format === 'roundrobin') {
         renderRoundRobinBracket(bracketContainer);
@@ -1312,6 +1325,7 @@ function renderActiveTournament() {
 }
 
 function renderRoundRobinBracket(container) {
+    if (!container) return;  // Safe check
     const pendingMatches = activeTournament.matches.filter(m => m.status === 'pending');
     const completedMatches = activeTournament.matches.filter(m => m.status === 'completed');
 
@@ -1399,6 +1413,7 @@ function renderRoundRobinBracket(container) {
 }
 
 function renderEliminationBracket(container) {
+    if (!container) return;  // Safe check
     const rounds = {};
     activeTournament.matches.forEach(match => {
         const round = match.round || 1;
@@ -1564,6 +1579,7 @@ function endTournament() {
 
     alert(`🏆 ทัวร์นาเมนต์เสร็จสิ้น!\n\nแชมป์: ${winner?.name || 'ไม่มี'}`);
 }
+    if (!container) return;  // Safe check
 
 function renderTournamentHistory() {
     const container = document.getElementById('tournament-history');
