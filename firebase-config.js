@@ -57,7 +57,8 @@ function saveDataToFirebase() {
     lastSaved: new Date().toISOString()
   };
 
-  db.ref(DATA_PATH).set(data)
+  // Use update() instead of set() to merge data instead of overwriting
+  db.ref(DATA_PATH).update(data)
     .then(() => console.log('✅ Data saved to Firebase RTDB'))
     .catch((error) => {
       console.error('❌ Error saving to Firebase:', error.message);
