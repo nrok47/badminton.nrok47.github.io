@@ -557,20 +557,29 @@ function editMatch() {
 
 // Update Expense Form based on Type
 function updateExpenseForm() {
-    const type = document.getElementById('expense-type').value;
+    const typeSelect = document.getElementById('expense-type');
+    if (!typeSelect) return; // Element doesn't exist on this page
+    
+    const type = typeSelect.value;
     const courtPayerGroup = document.getElementById('court-payer-group');
     const shuttlecockGroup = document.getElementById('shuttlecock-group');
+
+    if (!courtPayerGroup || !shuttlecockGroup) return;
 
     if (type === 'court') {
         courtPayerGroup.style.display = 'block';
         shuttlecockGroup.style.display = 'none';
-        document.getElementById('expense-payer').required = true;
-        document.getElementById('shuttlecock-payer').required = false;
+        const expPayer = document.getElementById('expense-payer');
+        const scPayer = document.getElementById('shuttlecock-payer');
+        if (expPayer) expPayer.required = true;
+        if (scPayer) scPayer.required = false;
     } else if (type === 'shuttlecock') {
         courtPayerGroup.style.display = 'none';
         shuttlecockGroup.style.display = 'block';
-        document.getElementById('expense-payer').required = false;
-        document.getElementById('shuttlecock-payer').required = true;
+        const expPayer = document.getElementById('expense-payer');
+        const scPayer = document.getElementById('shuttlecock-payer');
+        if (expPayer) expPayer.required = false;
+        if (scPayer) scPayer.required = true;
         renderShuttlecockMembersList();
     } else {
         courtPayerGroup.style.display = 'none';
@@ -600,6 +609,9 @@ function renderShuttlecockMembersList() {
 // Render Bill Members Selection
 function renderBillMembersList() {
     const container = document.getElementById('bill-members-list');
+    
+    // Check if container exists (might not be on this page)
+    if (!container) return;
     
     if (!members || members.length === 0) {
         container.innerHTML = '<p class="empty-state">ยังไม่มีสมาชิก</p>';
@@ -836,10 +848,17 @@ function addExpense() {
     renderExpenses();
     updateDashboard();
     
-    document.getElementById('expense-form').reset();
-    document.getElementById('expense-type').value = '';
-    document.getElementById('court-payer-group').style.display = 'none';
-    document.getElementById('shuttlecock-group').style.display = 'none';
+    // Reset form if it exists
+    const form = document.getElementById('expense-form');
+    if (form) {
+        form.reset();
+        const typeSelect = document.getElementById('expense-type');
+        if (typeSelect) typeSelect.value = '';
+        const courtGroup = document.getElementById('court-payer-group');
+        if (courtGroup) courtGroup.style.display = 'none';
+        const scGroup = document.getElementById('shuttlecock-group');
+        if (scGroup) scGroup.style.display = 'none';
+    }
 }
 
 function deleteExpense(id) {
