@@ -12,9 +12,16 @@ let shuttlecockItems = []; // Array of {quantity, pricePerItem, payer}
 // Initialize App (Firebase RTDB, no auth)
 document.addEventListener('DOMContentLoaded', () => {
     console.log('📄 DOM Content Loaded');
+    console.log('🔍 Global variables initialized:');
+    console.log('  👥 members:', members);
+    console.log('  ⚽ matches:', matches);
+    console.log('  💰 expenses:', expenses);
     // Load from Firebase
     if (typeof loadAllDataFromFirebase === 'function') {
+        console.log('📥 Calling loadAllDataFromFirebase...');
         loadAllDataFromFirebase();
+    } else {
+        console.error('❌ loadAllDataFromFirebase is not available');
     }
     initializeAppUI();
 });

@@ -73,16 +73,21 @@ function loadAllDataFromFirebase() {
   }
   db.ref(DATA_PATH).once('value')
     .then((snapshot) => {
+      console.log('🔍 Checking Firebase path:', DATA_PATH);
       if (snapshot.exists()) {
         const data = snapshot.val();
+        console.log('📥 Raw data from Firebase:', data);
         members = data.members || [];
         matches = data.matches || [];
         expenses = data.expenses || [];
         activeTournament = data.activeTournament || null;
         tournamentHistory = data.tournamentHistory || [];
         console.log('✅ Data loaded from Firebase RTDB');
+        console.log('👥 Members:', members);
+        console.log('⚽ Matches:', matches);
+        console.log('💰 Expenses:', expenses);
       } else {
-        console.log('📭 No data found in Firebase, starting fresh');
+        console.log('📭 No data found in Firebase at path:', DATA_PATH, '- starting fresh');
         members = [];
         matches = [];
         expenses = [];
@@ -90,12 +95,19 @@ function loadAllDataFromFirebase() {
         tournamentHistory = [];
       }
 
-      updateDashboard();
-      renderMembers();
-      renderExpenses();
-      renderTournamentPlayerSelection();
-      renderActiveTournament();
-      renderTournamentHistory();
+      // Add delay to ensure app.js variables are ready
+      setTimeout(() => {
+        try {
+          updateDashboard();
+          renderMembers();
+          renderExpenses();
+          renderTournamentPlayerSelection();
+          renderActiveTournament();
+          renderTournamentHistory();
+        } catch (renderError) {
+          console.error('❌ Error rendering:', renderError.message);
+        }
+      }, 100);
     })
     .catch((error) => {
       console.error('❌ Error loading from Firebase:', error.message);
@@ -107,16 +119,18 @@ function loadAllDataFromFirebase() {
       activeTournament = null;
       tournamentHistory = [];
       // Try to render with empty data
-      try {
-        updateDashboard();
-        renderMembers();
-        renderExpenses();
-        renderTournamentPlayerSelection();
-        renderActiveTournament();
-        renderTournamentHistory();
-      } catch (renderError) {
-        console.error('❌ Error rendering with empty data:', renderError.message);
-      }
+      setTimeout(() => {
+        try {
+          updateDashboard();
+          renderMembers();
+          renderExpenses();
+          renderTournamentPlayerSelection();
+          renderActiveTournament();
+          renderTournamentHistory();
+        } catch (renderError) {
+          console.error('❌ Error rendering with empty data:', renderError.message);
+        }
+      }, 100);
       alert('⚠️ ไม่สามารถโหลดข้อมูลได้: ' + error.message);
     });
 }
