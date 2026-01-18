@@ -1579,10 +1579,10 @@ function endTournament() {
 
     alert(`🏆 ทัวร์นาเมนต์เสร็จสิ้น!\n\nแชมป์: ${winner?.name || 'ไม่มี'}`);
 }
-    if (!container) return;  // Safe check
 
 function renderTournamentHistory() {
     const container = document.getElementById('tournament-history');
+    if (!container) return;  // Safe check
 
     if (tournamentHistory.length === 0) {
         container.innerHTML = '<p class="empty-state">ยังไม่มีทัวร์นาเมนต์ที่จบแล้ว</p>';
