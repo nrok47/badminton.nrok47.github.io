@@ -591,6 +591,8 @@ function updateExpenseForm() {
         const scPayer = document.getElementById('shuttlecock-payer');
         if (expPayer) expPayer.required = true;
         if (scPayer) scPayer.required = false;
+        // Update payer dropdown
+        updatePlayerSelects();
     } else if (type === 'shuttlecock') {
         courtPayerGroup.style.display = 'none';
         shuttlecockGroup.style.display = 'block';
@@ -599,6 +601,8 @@ function updateExpenseForm() {
         if (expPayer) expPayer.required = false;
         if (scPayer) scPayer.required = true;
         renderShuttlecockMembersList();
+        // Update payer dropdown
+        updatePlayerSelects();
     } else {
         courtPayerGroup.style.display = 'none';
         shuttlecockGroup.style.display = 'none';
