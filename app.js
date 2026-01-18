@@ -643,7 +643,7 @@ function renderBillMembersList() {
 
     container.innerHTML = members.map(member => `
         <div class="member-checkbox-item">
-            <input type="checkbox" id="bill-member-${member.id}" value="${member.id}" class="bill-member">
+            <input type="checkbox" id="bill-member-${member.id}" value="${member.id}" class="bill-member" onchange="updateBillCourtPayerDropdown()">
             <label for="bill-member-${member.id}">${member.name}</label>
         </div>
     `).join('');
@@ -653,6 +653,21 @@ function renderBillMembersList() {
 function getSelectedBillMembers() {
     const checkboxes = document.querySelectorAll('.bill-member:checked');
     return Array.from(checkboxes).map(cb => parseInt(cb.value));
+}
+
+// Update Bill Court Payer Dropdown based on selected bill members
+function updateBillCourtPayerDropdown() {
+    const dropdown = document.getElementById('bill-court-payer');
+    if (!dropdown) return;
+    
+    const selectedIds = getSelectedBillMembers();
+    const selectedMembers = members.filter(m => selectedIds.includes(m.id));
+    
+    const currentValue = dropdown.value;
+    dropdown.innerHTML = '<option value="">เลือกผู้จ่าย</option>' +
+        selectedMembers.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    
+    if (currentValue) dropdown.value = currentValue;
 }
 
 // Add Shuttlecock Item Row
