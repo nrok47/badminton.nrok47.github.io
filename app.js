@@ -52,6 +52,9 @@ function initializeAppUI() {
         addExpense();
     });
 
+    // Expense Type Change Handler
+    document.getElementById('expense-type').addEventListener('change', updateExpenseForm);
+
     // Clear Expenses Button
     document.getElementById('clear-expenses-btn').addEventListener('click', () => {
         if (confirm('คุณต้องการล้างข้อมูลค่าใช้จ่ายทั้งหมดหรือไม่?')) {
@@ -150,7 +153,7 @@ function deleteMember(id) {
 function renderMembers() {
     const container = document.getElementById('members-list');
     
-    if (members.length === 0) {
+    if (!members || members.length === 0) {
         container.innerHTML = '<p class="empty-state">ยังไม่มีสมาชิก คลิก "เพิ่มสมาชิก" เพื่อเริ่มต้น</p>';
         return;
     }
@@ -219,20 +222,25 @@ function renderCourts() {
 
 // Player Selects Update
 function updatePlayerSelects() {
-    const selects = ['winner1', 'winner2', 'loser1', 'loser2', 'expense-payer'];
+    if (!members) members = [];
+    
+    const selects = ['winner1', 'winner2', 'loser1', 'loser2', 'expense-payer', 'edit-winner1', 'edit-winner2', 'edit-loser1', 'edit-loser2', 'shuttlecock-payer'];
     
     selects.forEach(selectId => {
         const select = document.getElementById(selectId);
         if (!select) return;
 
         const currentValue = select.value;
-        const isExpense = selectId === 'expense-payer';
+        const isExpense = selectId === 'expense-payer' || selectId === 'shuttlecock-payer';
         
         select.innerHTML = `<option value="">เลือก${isExpense ? 'ผู้จ่าย' : 'ผู้เล่น'}</option>` +
             members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
         
         if (currentValue) select.value = currentValue;
     });
+
+    // Also update shuttlecock members list if it exists
+    renderShuttlecockMembersList();
 }
 
 // Match Result Recording with Advanced Scoring Logic
@@ -328,11 +336,13 @@ function recordMatchResult() {
         player.winRate = player.wins / player.gamesPlayed;
     });
 
-    // Record match
+    // Record match with player IDs for later deletion/editing
     matches.push({
         id: Date.now(),
         winners: [winner1.name, winner2.name],
+        winnerIds: [winner1.id, winner2.id],
         losers: [loser1.name, loser2.name],
+        loserIds: [loser1.id, loser2.id],
         winPoints: winPoints,
         losePoints: losePoints,
         timestamp: new Date().toISOString()
@@ -348,33 +358,317 @@ function recordMatchResult() {
     alert(`✅ บันทึกผลการแข่งขันสำเร็จ!\n\nฝั่งชนะ: +${winPoints} คะแนน\nฝั่งแพ้: ${losePoints} คะแนน`);
 }
 
+// Delete Match with Score Reversal
+function deleteMatch(matchId) {
+    const match = matches.find(m => m.id === matchId);
+    if (!match) return;
+
+    if (!confirm('คุณต้องการลบแมตช์นี้และคืนค่าคะแนน? กระบวนการนี้ไม่สามารถย้อนกลับได้')) {
+        return;
+    }
+
+    // Revert points
+    match.winnerIds.forEach(winnerId => {
+        const member = members.find(m => m.id === winnerId);
+        if (member) {
+            member.points -= match.winPoints;  // Remove won points
+            member.points = Math.max(0, member.points);
+            member.wins--;
+            member.gamesPlayed--;
+        }
+    });
+
+    match.loserIds.forEach(loserId => {
+        const member = members.find(m => m.id === loserId);
+        if (member) {
+            member.points -= match.losePoints;  // Remove lost points
+            member.points = Math.max(0, member.points);
+            member.losses--;
+            member.gamesPlayed--;
+        }
+    });
+
+    // Recalculate win rate
+    [match.winnerIds, match.loserIds].forEach(ids => {
+        ids.forEach(id => {
+            const member = members.find(m => m.id === id);
+            if (member && member.gamesPlayed > 0) {
+                member.winRate = member.wins / member.gamesPlayed;
+            } else if (member) {
+                member.winRate = 0;
+                member.gamesPlayed = 0;
+            }
+        });
+    });
+
+    // Remove match
+    matches = matches.filter(m => m.id !== matchId);
+    
+    saveDataToFirebase();
+    updateDashboard();
+    renderMembers();
+    
+    alert('✅ ลบแมตช์และคืนค่าคะแนนสำเร็จแล้ว!');
+}
+
+// Open Edit Match Modal
+function openEditMatchModal(matchId) {
+    const match = matches.find(m => m.id === matchId);
+    if (!match) return;
+
+    // Fill in the form with existing match data
+    const winner1 = members.find(m => m.id === match.winnerIds[0]);
+    const winner2 = members.find(m => m.id === match.winnerIds[1]);
+    const loser1 = members.find(m => m.id === match.loserIds[0]);
+    const loser2 = members.find(m => m.id === match.loserIds[1]);
+
+    document.getElementById('edit-winner1').value = match.winnerIds[0];
+    document.getElementById('edit-winner2').value = match.winnerIds[1];
+    document.getElementById('edit-loser1').value = match.loserIds[0];
+    document.getElementById('edit-loser2').value = match.loserIds[1];
+    document.getElementById('edit-match-id').value = matchId;
+
+    openModal('edit-match-modal');
+}
+
+// Edit Match with Score Reversal and Recalculation
+function editMatch() {
+    const matchId = parseInt(document.getElementById('edit-match-id').value);
+    const oldMatch = matches.find(m => m.id === matchId);
+    if (!oldMatch) return;
+
+    const winner1Id = parseInt(document.getElementById('edit-winner1').value);
+    const winner2Id = parseInt(document.getElementById('edit-winner2').value);
+    const loser1Id = parseInt(document.getElementById('edit-loser1').value);
+    const loser2Id = parseInt(document.getElementById('edit-loser2').value);
+
+    if (!winner1Id || !winner2Id || !loser1Id || !loser2Id) {
+        alert('กรุณาเลือกผู้เล่นให้ครบทุกคน');
+        return;
+    }
+
+    // Check for duplicate players
+    const playerIds = [winner1Id, winner2Id, loser1Id, loser2Id];
+    if (new Set(playerIds).size !== 4) {
+        alert('ไม่สามารถเลือกผู้เล่นคนเดียวกันซ้ำได้');
+        return;
+    }
+
+    // Revert old match
+    oldMatch.winnerIds.forEach(id => {
+        const member = members.find(m => m.id === id);
+        if (member) {
+            member.points -= oldMatch.winPoints;
+            member.points = Math.max(0, member.points);
+            member.wins--;
+            member.gamesPlayed--;
+        }
+    });
+
+    oldMatch.loserIds.forEach(id => {
+        const member = members.find(m => m.id === id);
+        if (member) {
+            member.points -= oldMatch.losePoints;
+            member.points = Math.max(0, member.points);
+            member.losses--;
+            member.gamesPlayed--;
+        }
+    });
+
+    // Calculate new points
+    const winner1 = members.find(m => m.id === winner1Id);
+    const winner2 = members.find(m => m.id === winner2Id);
+    const loser1 = members.find(m => m.id === loser1Id);
+    const loser2 = members.find(m => m.id === loser2Id);
+
+    const winnersAvgPoints = (winner1.points + winner2.points) / 2;
+    const losersAvgPoints = (loser1.points + loser2.points) / 2;
+    const pointDiff = Math.abs(winnersAvgPoints - losersAvgPoints);
+
+    let winPoints = 10;
+    let losePoints = -5;
+
+    if (losersAvgPoints > winnersAvgPoints) {
+        const bonus = Math.min(6, Math.floor(pointDiff / 50));
+        winPoints += bonus;
+    }
+
+    if (winnersAvgPoints > losersAvgPoints) {
+        const penalty = Math.min(3, Math.floor(pointDiff / 100));
+        losePoints -= penalty;
+    }
+
+    [winner1, winner2].forEach(winner => {
+        const partner = winner.id === winner1Id ? winner2 : winner1;
+        if (partner.winRate < 0.4 && partner.gamesPlayed > 5) {
+            winner.points += 2;
+        }
+    });
+
+    const today = new Date().toDateString();
+    [winner1, winner2, loser1, loser2].forEach(player => {
+        if (player.lastPlayDate === today) {
+            player.todayGames++;
+            if (player.todayGames > 5) {
+                winPoints = Math.max(5, winPoints - 2);
+                losePoints = Math.max(-3, losePoints + 1);
+            }
+        }
+    });
+
+    // Apply new points
+    winner1.points += winPoints;
+    winner2.points += winPoints;
+    loser1.points += losePoints;
+    loser2.points += losePoints;
+
+    [winner1, winner2, loser1, loser2].forEach(player => {
+        player.points = Math.max(0, player.points);
+        player.gamesPlayed++;
+        if (player === winner1 || player === winner2) {
+            player.wins++;
+        } else {
+            player.losses++;
+        }
+        player.winRate = player.wins / player.gamesPlayed;
+    });
+
+    // Update match record
+    oldMatch.winnerIds = [winner1Id, winner2Id];
+    oldMatch.loserIds = [loser1Id, loser2Id];
+    oldMatch.winners = [winner1.name, winner2.name];
+    oldMatch.losers = [loser1.name, loser2.name];
+    oldMatch.winPoints = winPoints;
+    oldMatch.losePoints = losePoints;
+
+    saveDataToFirebase();
+    updateDashboard();
+    renderMembers();
+    closeModal('edit-match-modal');
+    
+    alert(`✅ แก้ไขแมตช์สำเร็จ!\\n\\nฝั่งชนะ: +${winPoints} คะแนน\\nฝั่งแพ้: ${losePoints} คะแนน`);
+}
+
+// Update Expense Form based on Type
+function updateExpenseForm() {
+    const type = document.getElementById('expense-type').value;
+    const courtPayerGroup = document.getElementById('court-payer-group');
+    const shuttlecockGroup = document.getElementById('shuttlecock-group');
+
+    if (type === 'court') {
+        courtPayerGroup.style.display = 'block';
+        shuttlecockGroup.style.display = 'none';
+        document.getElementById('expense-payer').required = true;
+        document.getElementById('shuttlecock-payer').required = false;
+    } else if (type === 'shuttlecock') {
+        courtPayerGroup.style.display = 'none';
+        shuttlecockGroup.style.display = 'block';
+        document.getElementById('expense-payer').required = false;
+        document.getElementById('shuttlecock-payer').required = true;
+        renderShuttlecockMembersList();
+    } else {
+        courtPayerGroup.style.display = 'none';
+        shuttlecockGroup.style.display = 'none';
+    }
+}
+
+// Render Members Checkbox List for Shuttlecock
+function renderShuttlecockMembersList() {
+    const container = document.getElementById('shuttlecock-members-list');
+    
+    if (!members || members.length === 0) {
+        container.innerHTML = '<p class="empty-state">ยังไม่มีสมาชิก</p>';
+        return;
+    }
+
+    container.innerHTML = members.map(member => `
+        <div class="member-checkbox-item">
+            <input type="checkbox" id="member-${member.id}" value="${member.id}" class="shuttlecock-member">
+            <label for="member-${member.id}">${member.name}</label>
+        </div>
+    `).join('');
+}
+
+// Get Selected Members for Shuttlecock
+function getSelectedShuttlecockMembers() {
+    const checkboxes = document.querySelectorAll('.shuttlecock-member:checked');
+    return Array.from(checkboxes).map(cb => parseInt(cb.value));
+}
+
 // Expense Management
 function addExpense() {
-    const name = document.getElementById('expense-name').value.trim();
+    const type = document.getElementById('expense-type').value;
     const amount = parseFloat(document.getElementById('expense-amount').value);
-    const payerId = parseInt(document.getElementById('expense-payer').value);
 
-    if (!name || !amount || !payerId) {
+    if (!type || !amount) {
         alert('กรุณากรอกข้อมูลให้ครบถ้วน');
         return;
     }
 
-    const payer = members.find(m => m.id === payerId);
+    if (type === 'court') {
+        // Court expense - one payer, split equally among all
+        const payerId = parseInt(document.getElementById('expense-payer').value);
+        
+        if (!payerId) {
+            alert('กรุณาเลือกผู้จ่ายค่าสนาม');
+            return;
+        }
 
-    expenses.push({
-        id: Date.now(),
-        name: name,
-        amount: amount,
-        payer: payer.name,
-        payerId: payerId,
-        timestamp: new Date().toISOString()
-    });
+        const payer = members.find(m => m.id === payerId);
+
+        expenses.push({
+            id: Date.now(),
+            type: 'court',
+            name: '🏸 ค่าสนาม',
+            amount: amount,
+            payer: payer.name,
+            payerId: payerId,
+            splitAmong: members.map(m => m.id), // All members
+            timestamp: new Date().toISOString()
+        });
+
+        alert(`✅ เพิ่มค่าสนาม ${amount} บาท (หารเท่ากันกับ ${members.length} คน)`);
+
+    } else if (type === 'shuttlecock') {
+        // Shuttlecock expense - one payer, split among selected members
+        const payerId = parseInt(document.getElementById('shuttlecock-payer').value);
+        const selectedMembers = getSelectedShuttlecockMembers();
+
+        if (!payerId) {
+            alert('กรุณาเลือกผู้จ่ายค่าลูก');
+            return;
+        }
+
+        if (selectedMembers.length === 0) {
+            alert('กรุณาเลือกคนที่ต้องหักค่าลูก (อย่างน้อย 1 คน)');
+            return;
+        }
+
+        const payer = members.find(m => m.id === payerId);
+        const memberNames = selectedMembers.map(id => members.find(m => m.id === id).name).join(', ');
+
+        expenses.push({
+            id: Date.now(),
+            type: 'shuttlecock',
+            name: '🏸 ค่าลูก',
+            amount: amount,
+            payer: payer.name,
+            payerId: payerId,
+            splitAmong: selectedMembers, // Only selected members
+            timestamp: new Date().toISOString()
+        });
+
+        alert(`✅ เพิ่มค่าลูก ${amount} บาท (หารกับ ${selectedMembers.length} คน: ${memberNames})`);
+    }
 
     saveDataToFirebase();
     renderExpenses();
     updateDashboard();
     
     document.getElementById('expense-form').reset();
+    document.getElementById('expense-type').value = '';
+    document.getElementById('court-payer-group').style.display = 'none';
+    document.getElementById('shuttlecock-group').style.display = 'none';
 }
 
 function deleteExpense(id) {
@@ -390,73 +684,133 @@ function renderExpenses() {
     // Expenses List
     const listContainer = document.getElementById('expenses-list');
     
-    if (expenses.length === 0) {
+    if (!expenses || expenses.length === 0) {
         listContainer.innerHTML = '<p class="empty-state">ไม่มีรายการ</p>';
     } else {
-        listContainer.innerHTML = expenses.map(exp => `
-            <div class="expense-item">
-                <div>
-                    <strong>${exp.name}</strong> - ฿${exp.amount.toLocaleString()}
-                    <div style="font-size: 0.85rem; color: #666;">จ่ายโดย: ${exp.payer}</div>
+        listContainer.innerHTML = expenses.map(exp => {
+            // Safely handle both old and new expense formats
+            const splitCount = (exp.splitAmong && exp.splitAmong.length > 0) ? exp.splitAmong.length : (members && members.length > 0 ? members.length : 1);
+            const perPersonAmount = (exp.amount / splitCount).toFixed(2);
+            
+            let splitMembers = 'ทุกคน';
+            if (exp.splitAmong && exp.splitAmong.length > 0 && members && members.length > 0) {
+                splitMembers = exp.splitAmong.map(id => {
+                    const member = members.find(m => m.id === id);
+                    return member ? member.name : 'Unknown';
+                }).join(', ');
+            }
+
+            return `
+                <div class="expense-item">
+                    <div>
+                        <strong>${exp.name}</strong> - ฿${exp.amount.toLocaleString()}
+                        <div style="font-size: 0.85rem; color: #666;">
+                            จ่ายโดย: ${exp.payer} | หารเท่ากับ ${splitCount} คน (คนละ ฿${perPersonAmount})
+                        </div>
+                        <div style="font-size: 0.8rem; color: #999;">
+                            รายคน: ${splitMembers}
+                        </div>
+                    </div>
+                    <button class="expense-delete" onclick="deleteExpense(${exp.id})">🗑️</button>
                 </div>
-                <button class="expense-delete" onclick="deleteExpense(${exp.id})">🗑️</button>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     // Bill Split Calculation
     const summaryContainer = document.getElementById('expenses-summary');
     
-    if (expenses.length === 0) {
+    if (!expenses || expenses.length === 0) {
         summaryContainer.innerHTML = '<p class="empty-state">ยังไม่มีรายการค่าใช้จ่าย</p>';
         return;
     }
 
-    const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const perPerson = totalExpense / members.length;
+    // Calculate detailed bill split
+    calculateAndDisplayBillSplit(summaryContainer);
+}
 
-    // Calculate who paid what
-    const payments = {};
-    members.forEach(m => payments[m.id] = 0);
-    expenses.forEach(exp => {
-        payments[exp.payerId] = (payments[exp.payerId] || 0) + exp.amount;
+// Calculate and Display Bill Split
+function calculateAndDisplayBillSplit(container) {
+    if (!members || members.length === 0 || !expenses) {
+        container.innerHTML = '<p class="empty-state">ยังไม่มีรายการค่าใช้จ่าย</p>';
+        return;
+    }
+
+    // Initialize payment tracking
+    const payments = {}; // Who paid what
+    const owes = {};     // Who owes what portion
+    
+    members.forEach(m => {
+        payments[m.id] = 0;
+        owes[m.id] = 0;
     });
 
-    // Calculate balance
+    // Calculate who paid and who owes
+    expenses.forEach(exp => {
+        if (!exp || exp.amount === undefined) return;
+        
+        // Add to what payer paid
+        payments[exp.payerId] = (payments[exp.payerId] || 0) + exp.amount;
+
+        // Distribute cost to those who owe
+        // Handle both new format (splitAmong) and old format (all members)
+        const splitMemberIds = (exp.splitAmong && exp.splitAmong.length > 0) ? exp.splitAmong : members.map(m => m.id);
+        const perPerson = exp.amount / splitMemberIds.length;
+        splitMemberIds.forEach(memberId => {
+            owes[memberId] = (owes[memberId] || 0) + perPerson;
+        });
+    });
+
+    // Calculate balance (positive = owed money back, negative = owes money)
     const balances = members.map(m => ({
         name: m.name,
         id: m.id,
         paid: payments[m.id] || 0,
-        shouldPay: perPerson,
-        balance: (payments[m.id] || 0) - perPerson
+        owes: owes[m.id] || 0,
+        balance: (payments[m.id] || 0) - (owes[m.id] || 0)
     }));
 
-    summaryContainer.innerHTML = `
+    const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+    container.innerHTML = `
         <div class="summary-item summary-total">
-            <span>รวมทั้งหมด</span>
+            <span>รวมค่าใช้จ่ายทั้งหมด</span>
             <span>฿${totalExpense.toLocaleString()}</span>
-        </div>
-        <div class="summary-item">
-            <span>จำนวนคน</span>
-            <span>${members.length} คน</span>
-        </div>
-        <div class="summary-item">
-            <span>คนละ</span>
-            <span>฿${perPerson.toFixed(2)}</span>
         </div>
         <div style="margin-top: 1.5rem;">
             <h4 style="margin-bottom: 1rem;">💸 สรุปการจ่ายเงิน</h4>
             <div class="bill-split-grid">
-                ${balances.map(b => `
-                    <div class="bill-split-item ${b.balance < -0.01 ? 'debt' : b.balance > 0.01 ? 'credit' : ''}">
-                        <span>${b.name}</span>
-                        <span style="font-weight: bold;">
-                            ${b.balance < -0.01 ? `ต้องจ่ายเพิ่ม ฿${Math.abs(b.balance).toFixed(2)}` : 
-                              b.balance > 0.01 ? `ได้รับคืน ฿${b.balance.toFixed(2)}` : 
-                              'เสมอกัน ✅'}
-                        </span>
-                    </div>
-                `).join('')}
+                ${balances.map(b => {
+                    let statusClass = '';
+                    let statusText = '';
+                    
+                    if (b.balance < -0.01) {
+                        statusClass = 'debt';
+                        statusText = `ต้องจ่ายเพิ่ม ฿${Math.abs(b.balance).toFixed(2)}`;
+                    } else if (b.balance > 0.01) {
+                        statusClass = 'credit';
+                        statusText = `ได้รับคืน ฿${b.balance.toFixed(2)}`;
+                    } else {
+                        statusText = 'เสมอกัน ✅';
+                    }
+
+                    return `
+                        <div class="bill-split-item ${statusClass}">
+                            <div style="margin-bottom: 0.5rem;">
+                                <strong>${b.name}</strong>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.3rem;">
+                                จ่ายไป: ฿${b.paid.toFixed(2)}
+                            </div>
+                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">
+                                ต้องจ่าย: ฿${b.owes.toFixed(2)}
+                            </div>
+                            <div style="font-weight: bold; padding-top: 0.5rem; border-top: 1px solid #e0e0e0;">
+                                ${statusText}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         </div>
     `;
@@ -464,12 +818,17 @@ function renderExpenses() {
 
 // Dashboard Updates
 function updateDashboard() {
+    if (!members) members = [];
+    if (!matches) matches = [];
+    if (!courts) courts = [];
+    if (!expenses) expenses = [];
+    
     // Stats
     document.getElementById('total-members').textContent = members.length;
     document.getElementById('total-matches').textContent = matches.length;
     document.getElementById('total-courts').textContent = courts.length;
     document.getElementById('total-expenses').textContent = 
-        '฿' + expenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString();
+        '฿' + expenses.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString();
 
     // Leaderboard
     const leaderboard = document.getElementById('leaderboard');
@@ -522,7 +881,7 @@ function updateDashboard() {
             const time = new Date(match.timestamp).toLocaleString('th-TH');
             return `
                 <div class="match-item">
-                    <div>
+                    <div class="match-content">
                         <div class="match-winners">
                             ชนะ: ${match.winners.join(' + ')} (+${match.winPoints})
                         </div>
@@ -530,6 +889,10 @@ function updateDashboard() {
                             แพ้: ${match.losers.join(' + ')} (${match.losePoints})
                         </div>
                         <div class="match-time">${time}</div>
+                    </div>
+                    <div class="match-actions">
+                        <button class="btn-icon" onclick="openEditMatchModal(${match.id})" title="แก้ไขแมตช์">✏️</button>
+                        <button class="btn-icon btn-danger" onclick="deleteMatch(${match.id})" title="ลบแมตช์">🗑️</button>
                     </div>
                 </div>
             `;
@@ -543,7 +906,7 @@ function updateDashboard() {
 function renderTournamentPlayerSelection() {
     const container = document.getElementById('tournament-players-selection');
     
-    if (members.length === 0) {
+    if (!members || members.length === 0) {
         container.innerHTML = '<p class="empty-state">กรุณาเพิ่มสมาชิกก่อน</p>';
         return;
     }

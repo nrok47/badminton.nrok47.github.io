@@ -656,6 +656,52 @@ body {
     background: #e53e3e;
 }
 
+/* Members Checkbox List for Expenses */
+.members-checkbox-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f7fafc;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.member-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.member-checkbox-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.member-checkbox-item input[type="checkbox"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+.member-checkbox-item input[type="checkbox"]:checked ~ label {
+    color: #667eea;
+    font-weight: bold;
+}
+
+.member-checkbox-item label {
+    cursor: pointer;
+    margin: 0;
+    flex: 1;
+}
+
 /* Modal */
 .modal {
     display: none;
@@ -718,6 +764,16 @@ body {
     background: #f7fafc;
     border-radius: 8px;
     margin-bottom: 0.5rem;
+    gap: 1rem;
+}
+
+.match-content {
+    flex: 1;
+}
+
+.match-actions {
+    display: flex;
+    gap: 0.5rem;
 }
 
 .match-winners {
@@ -732,6 +788,26 @@ body {
 .match-time {
     font-size: 0.85rem;
     color: #666;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background: #e2e8f0;
+    transform: scale(1.1);
+}
+
+.btn-icon.btn-danger:hover {
+    background: #fed7d7;
+    color: #c53030;
 }
 
 /* Tournament Styles */

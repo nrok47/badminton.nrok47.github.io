@@ -220,20 +220,43 @@
                 <form id="expense-form">
                     <div class="form-row">
                         <div class="form-group">
-                            <label>รายการ</label>
-                            <input type="text" id="expense-name" placeholder="เช่น ค่าคอร์ท, ค่าลูก" required>
+                            <label>ประเภทค่าใช้จ่าย</label>
+                            <select id="expense-type" required onchange="updateExpenseForm()">
+                                <option value="">เลือกประเภท</option>
+                                <option value="court">🏸 ค่าสนาม (หารเท่ากันทุกคน)</option>
+                                <option value="shuttlecock">🏸 ค่าลูก (เลือกใครหัก)</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>จำนวนเงิน (บาท)</label>
                             <input type="number" id="expense-amount" placeholder="0" min="0" required>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>ผู้จ่าย</label>
+                    
+                    <!-- For Court Type -->
+                    <div class="form-group" id="court-payer-group" style="display: none;">
+                        <label>ผู้จ่ายค่าสนาม</label>
                         <select id="expense-payer" required>
                             <option value="">เลือกผู้จ่าย</option>
                         </select>
                     </div>
+
+                    <!-- For Shuttlecock Type -->
+                    <div id="shuttlecock-group" style="display: none;">
+                        <div class="form-group">
+                            <label>ผู้จ่ายค่าลูก</label>
+                            <select id="shuttlecock-payer" required>
+                                <option value="">เลือกผู้จ่าย</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>เลือกคนที่ต้องหักค่านี้ (เลือกได้หลายคน)</label>
+                            <div id="shuttlecock-members-list" class="members-checkbox-list">
+                                <p class="empty-state">กรุณาเพิ่มสมาชิกก่อน</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn btn-primary">💾 บันทึก</button>
                 </form>
             </div>
@@ -277,6 +300,51 @@
                     <input type="tel" id="member-phone" placeholder="08X-XXX-XXXX">
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">✅ เพิ่มสมาชิก</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Editing Match -->
+    <div id="edit-match-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ แก้ไขแมตช์</h3>
+                <button class="close-btn" onclick="closeModal('edit-match-modal')">&times;</button>
+            </div>
+            <form id="edit-match-form" onsubmit="event.preventDefault(); editMatch();">
+                <input type="hidden" id="edit-match-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ผู้เล่นคนที่ 1 (ฝั่งชนะ)</label>
+                        <select id="edit-winner1" required>
+                            <option value="">เลือกผู้เล่น</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>ผู้เล่นคนที่ 2 (ฝั่งชนะ)</label>
+                        <select id="edit-winner2" required>
+                            <option value="">เลือกผู้เล่น</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ผู้เล่นคนที่ 1 (ฝั่งแพ้)</label>
+                        <select id="edit-loser1" required>
+                            <option value="">เลือกผู้เล่น</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>ผู้เล่นคนที่ 2 (ฝั่งแพ้)</label>
+                        <select id="edit-loser2" required>
+                            <option value="">เลือกผู้เล่น</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn btn-primary btn-block">✅ บันทึกการแก้ไข</button>
+                    <button type="button" class="btn btn-secondary btn-block" onclick="closeModal('edit-match-modal')">ยกเลิก</button>
+                </div>
             </form>
         </div>
     </div>
